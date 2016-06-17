@@ -27,7 +27,7 @@ class NewPdf():         #create a fragment of multisig key on a single page..
         self=FPDF('P','mm','A4')
         self.add_page()
         self.set_font('Times', '', 20)
-        self.image(jpeg,0,0,210,297)
+        # self.image(jpeg,0,0,210,297)
         self.multi_cell(0, 10,str(mkeys) + '-of-' +str(nkeys) +' : multisignature bitcoin paper wallet %s\n' % addr_multi[:6]  +
                               'contains private key number '+str(x+1)+' of '+str(nkeys),1,1,'C')
 
@@ -65,20 +65,20 @@ class NewPdf():         #create a fragment of multisig key on a single page..
 
 
 
-        self.output('mspw'+str(n+1)+'.pdf','F')
+        self.output(addr_multi[:6] + '/' + addr_multi + "-part" +str(n+1)+'.pdf','F')
         self.close()
 
 
 print '>>> Multi-signature paper wallet creator <<<'
-print 'How many keyholders for the multisignature address(n)? - (max 8)'
+print 'How many keyholders for the multisignature address(n)? - (max 8, default 3)'
 # More than 8 keys will create a script to big for the qrcode in ERROR_CORRECT_H mode
-nkeys = int(raw_input())
+nkeys = int(raw_input() or '3')
 if nkeys > 8:
     print 'n cannot be greater than 8'
     exit()
 #need error for no number input..or if only one key
-print 'How many keys required to spend funds at the address(m)?'
-mkeys = int(raw_input())
+print 'How many keys required to spend funds at the address(m)? - (default 2)'
+mkeys = int(raw_input() or '2')
 if mkeys > nkeys:
     print 'm cannot be greater than n'
     exit()
@@ -104,6 +104,8 @@ if nkeys-rankeys > 0:
         print 'Paste private key number', x+1
         priv.append(raw_input())    #add error checking for bitcoin address
 
+priv.sort()
+
 for x in range(0,nkeys):
     wif.append(encode_privkey(priv[x],'wif'))
     pub.append(privtopub(priv[x]))
@@ -125,7 +127,7 @@ print '>>>Creating paper wallet image file..'
 pdf=FPDF('P','mm', 'A4') # Portrait, use milimeters
 pdf.add_page()
 pdf.set_font('Times', '', 20)
-pdf.image(jpeg,0,0,210,297)      #dimensions of a4 in mm
+# pdf.image(jpeg,0,0,210,297)      #dimensions of a4 in mm
 pdf.cell (0, 10,str(mkeys)+'-of-'+str(nkeys)+': multisignature bitcoin paper wallet %s / page 1' % addr_multi[:6] ,1,1,'C')
 pdf.set_font_size(13)
 pdf.cell(0, 32, 'multisig address: ' + addr_multi,1,1)
@@ -165,7 +167,8 @@ ran=random_key()
 img.save('qrcode' + ran + '.jpg')
 pdf.image('qrcode' + ran + '.jpg',80,240,50,50)
 os.remove('qrcode'+ ran +'.jpg')
-pdf.output('mspw-all-keys.pdf','F')
+os.mkdir( addr_multi[:6] )
+pdf.output( addr_multi[:6] + '/' + addr_multi + '-all-keys.pdf','F')
 
 print 'Do you want wallet file in distributable fragments?(enter for yes, all other input = no)'
 dist=raw_input()
@@ -173,5 +176,7 @@ if not dist:
     print '>>>Producing separate wallets for each private key'
     for x in range(len(priv)):
         NewPdf(x)     #instantiate class for each new pdf and fill..
+
+print "Finished multisignature bitcoin paper wallet %s generation" % addr_multi[:6]
 
 
